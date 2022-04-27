@@ -82,3 +82,8 @@ def pay_tax(db: Session, tax: schemas.TaxPayCreate, tax_id: int):
     db.commit()
     db.refresh(db_tax_pay)
     return db_tax
+
+# check taxpayer exists
+def check_user_exists(db: Session, user_id: int):
+    qs = db.query(models.User).filter(models.User.id == user_id).all()
+    return True if qs else False

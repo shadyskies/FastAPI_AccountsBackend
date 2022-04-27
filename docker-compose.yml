@@ -1,0 +1,29 @@
+version: '3.1'
+
+
+services:
+  db:
+    image: postgres
+    restart: on-failure
+    environment: 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - '5433:5432'
+    volumes: 
+      - db:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    ports:
+      - '8080:8080'
+    depends_on:
+      - db
+    network_mode: "host"
+
+volumes:
+  db:
+    driver: local
+
+
+  
