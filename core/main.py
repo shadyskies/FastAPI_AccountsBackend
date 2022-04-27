@@ -47,8 +47,8 @@ def get_db():
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def authenticate_user(email: str, password: str, db):
-    user = crud.get_user_by_email(db, email=email)
+def authenticate_user(username: str, password: str, db):
+    user = crud.get_user_by_username(db, username=username)
     
     if not user:
         return False
@@ -80,9 +80,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = crud.get_user(db, username=token_data.username)
+    print(f"tokeb data: {token_data}")
+    user = crud.get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
+    print(user)
     return user
 
 
@@ -93,9 +95,9 @@ def ping():
 
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_email(db, email=user.email)
+    db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="username already registered")
     hashed_password = get_password_hash(user.password)
     return crud.create_user(db=db, user=user, hashed_password=hashed_password)
 
@@ -138,11 +140,17 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/users/me")
-async def read_users_me(current_user: models.User = Depends(get_current_user)):
-    print(f"current_user:{current_user}")
+
+async def get_current_active_user(current_user: schemas.User = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+@app.get("/users/me/", response_model=schemas.User)
+async def read_users_me(current_user: schemas.User = Depends(get_current_active_user)):
+    return current_user
+
