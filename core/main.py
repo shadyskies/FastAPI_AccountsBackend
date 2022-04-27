@@ -154,3 +154,11 @@ async def get_current_active_user(current_user: schemas.User = Depends(get_curre
 async def read_users_me(current_user: schemas.User = Depends(get_current_active_user)):
     return current_user
 
+
+# view taxpayers only visible to accountant and amd
+@app.get('/taxpayers/', response_model=List[schemas.User])
+async def read_taxpayers(current_user: schemas.User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    if current_user.role == 'ACCOUNTANT' or current_user.role == 'ADMIN':
+        return crud.get_taxpayers(db)
+    else:
+        raise HTTPException(status_code=400, detail="Not authorized")

@@ -11,6 +11,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+    role = Column(String, default='TAXPAYER')
 
     items = relationship("Item", back_populates="owner")
 

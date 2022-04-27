@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from pydantic import BaseModel
+from enum import Enum
 
 
 class ItemBase(BaseModel):
@@ -24,8 +25,18 @@ class UserBase(BaseModel):
     username: str
 
 
+class UserRoles(str, Enum):
+    TAXPAYER = 'TAXPAYER'
+    ACCOUNTANT = 'ACCOUNTANT'
+    ADMIN = 'ADMIN'
+
+
 class UserCreate(UserBase):
     password: str
+    role: UserRoles = None
+
+
+# user roles class
 
 
 class User(UserBase):
