@@ -162,3 +162,26 @@ async def read_taxpayers(current_user: schemas.User = Depends(get_current_active
         return crud.get_taxpayers(db)
     else:
         raise HTTPException(status_code=400, detail="Not authorized")
+
+
+# create tax object for a taxpayer by accountant
+@app.post('/taxpayers/{taxpayer_id}/taxes/', response_model=schemas.UserTax)
+async def create_tax(taxpayer_id: int, tax: schemas.TaxCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_active_user)):
+    if current_user.role == 'ACCOUNTANT':
+        return crud.create_tax(db, tax, taxpayer_id, current_user.id)
+    else:
+        raise HTTPException(status_code=400, detail="Not authorized")
+
+
+
+# pay tax for taxpayer by accountant
+@app.post('/taxpayers/{taxpayer_id}/taxes/{tax_id}/pay/', response_model=schemas.UserTax)
+async def pay_tax(taxpayer_id: int, tax_id: int, tax: schemas.TaxPayCreate, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_active_user)):
+    if not crud.check_taxpayer(db, taxpayer_id, tax_id):
+        raise HTTPException(status_code=404, detail="Taxpayer and taxobject mismatch") 
+    if crud.check_tax_paid(db, tax_id):
+        raise HTTPException(status_code=403, detail="Tax already paid")
+    if current_user.role == 'ACCOUNTANT':
+        return crud.pay_tax(db, tax=tax, tax_id=tax_id)
+    else:
+        raise HTTPException(status_code=400, detail="Not authorized")

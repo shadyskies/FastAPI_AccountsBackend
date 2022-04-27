@@ -36,8 +36,6 @@ class UserCreate(UserBase):
     role: UserRoles = None
 
 
-# user roles class
-
 
 class User(UserBase):
     id: int
@@ -46,3 +44,35 @@ class User(UserBase):
 
     class Config:
         orm_mode = True
+
+class TaxCreate(BaseModel):
+    user_income: float
+    pan_card: str
+    tax_due_date: str
+    tax_status: str
+
+# created by accountant 
+class UserTax(TaxCreate):
+    id: int
+    username_id: int
+    tax_percent: float
+    tax_amount: float
+    tax_paid: float
+    tax_paid_date: str
+    tax_status: str # NEW, PAID, DELAYED 
+    tax_paid_status: bool
+    tax_percent: int
+    accountant_id: int
+    
+    class Config:
+        orm_mode = True
+
+
+# pay tax class 
+class TaxPayCreate(BaseModel):
+    tax_paid_date: str
+    tax_paid: float
+
+class TaxPay(TaxPayCreate):
+    id: int
+    tax_obj_id: int # which tax object is being paid

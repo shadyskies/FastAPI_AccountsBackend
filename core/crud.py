@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+from datetime import datetime
 
 
 def get_user(db: Session, user_id: int):
@@ -38,3 +39,46 @@ def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
 
 def get_taxpayers(db: Session):
     return db.query(models.User).filter(models.User.role == "TAXPAYER").all()
+
+
+# create tax object for taxpayer
+def create_tax(db: Session, tax: schemas.TaxCreate, username_id: int, accountant_id: int):
+    tax.tax_due_date = datetime.strptime(tax.tax_due_date,'%d-%m-%Y')
+    db_tax = models.Tax(**tax.dict(), tax_percent=0.2, username_id=username_id, accountant_id=accountant_id, tax_paid=0, tax_paid_status=False, tax_paid_date="", tax_amount=0.2*tax.user_income)
+    db.add(db_tax)
+    db.commit()
+    db.refresh(db_tax)
+    return db_tax
+
+# check if user_id matches tax obj
+def check_taxpayer(db: Session, username_id: int, tax_id: int):
+    qs = db.query(models.Tax).filter(models.Tax.id == tax_id).all()
+    # check exists
+    if qs: 
+        # check if user_id matches tax obj
+        return qs[0].username_id == username_id
+    else:
+        return False
+
+# check if tax status is paid
+def check_tax_paid(db: Session, tax_id: int):
+    qs = db.query(models.Tax).filter(models.Tax.id == tax_id).all()
+    return qs[0].tax_paid_status
+    
+
+# update the tax object when tax paid
+def pay_tax(db: Session, tax: schemas.TaxPayCreate, tax_id: int):
+    print(f"tax_id: {tax_id}")
+    # update existing tax object
+    db_tax = db.query(models.Tax).filter(models.Tax.id == tax_id).first()
+    db_tax.tax_paid += tax.tax_paid
+    if db_tax.tax_paid >= db_tax.tax_amount:
+        db_tax.tax_paid_status = True
+        db_tax.tax_status = 'PAID'
+        db_tax.paid_date = datetime.now()
+    # create TaxPay object
+    db_tax_pay = models.TaxPay(tax_obj_id=tax_id, tax_paid=tax.tax_paid, tax_paid_date=datetime.now())
+    db.add(db_tax_pay)
+    db.commit()
+    db.refresh(db_tax_pay)
+    return db_tax
